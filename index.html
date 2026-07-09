@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>the lexicon project</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Permanent+Marker&family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <span class="nav-logo">lc</span>
+    <ul class="nav-tabs">
+      <li><button class="tab-btn is-active" data-tab="words">my words</button></li>
+      <li><button class="tab-btn" data-tab="flashcards">flashcards</button></li>
+      <li><button class="tab-btn" data-tab="useit">use it</button></li>
+    </ul>
+    <div class="stats-bar">
+      <span class="stat stat-streak" title="day streak"><span class="stat-label">streak</span> <b id="stat-streak">0</b></span>
+      <span class="stat stat-xp" title="XP">★ <b id="stat-xp">0</b></span>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <!-- INTRO -->
+    <section class="intro">
+      <span class="section-eyebrow">welcome to</span>
+      <h1 class="brand-title">the lexicon project</h1>
+      <p class="brand-tagline">the lexicon project is a gamified way to <b>retain new words and actually use them</b> in real writing & conversation, rather than just recognizing them on a flashcard.</p>
+      <details class="how-it-works">
+        <summary>how it works</summary>
+        <ul>
+          <li>add a word and we auto-pull its definition from the dictionary</li>
+          <li><strong>flashcards</strong> test recall — flip to reveal the definition. correct = <b>+10 xp</b></li>
+          <li><strong>use it</strong> tests production — write your own sentence, then self-grade. correct = <b>+15 xp</b>, since actively using a word is worth more than just recognizing it</li>
+          <li>miss a word and it resets to the "new" box so it resurfaces sooner; get it right and it levels up (new → learning → familiar → mastered) with a longer gap before its next review</li>
+          <li>practice at least one word a day to keep your streak going</li>
+          <li>★ star a word from your bank to practice it anytime — no need to wait for it to come due</li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- WORDS TAB -->
+    <section class="tab-panel is-active" id="tab-words">
+      <div class="panel-header">
+        <span class="section-eyebrow">build your bank</span>
+        <h2 class="section-title">my word bank</h2>
+        <p class="section-sub">add a word and we'll pull the definition for you.</p>
+      </div>
+
+      <form id="add-word-form" class="add-word-form" autocomplete="off">
+        <input type="text" id="word-input" placeholder="type a word..." required />
+        <button type="submit" class="btn btn-primary" id="add-word-btn">add word</button>
+        <button type="button" class="btn btn-ghost" id="bulk-toggle">add many</button>
+      </form>
+
+      <div id="add-word-status" class="add-word-status" aria-live="polite"></div>
+
+      <!-- bulk add / digest notes -->
+      <div id="bulk-panel" class="bulk-panel is-hidden">
+        <p class="manual-entry-note">paste a list of words (commas, spaces, or one per line) — or dump in raw notes and we'll pull out the interesting words.</p>
+        <textarea id="bulk-input" rows="5" placeholder="e.g. perspicacious, lugubrious, sanguine&#10;&#10;...or paste a whole paragraph of notes"></textarea>
+        <div class="manual-entry-actions">
+          <button type="button" class="btn btn-primary" id="bulk-extract">extract words</button>
+          <button type="button" class="btn btn-ghost" id="bulk-cancel">cancel</button>
+        </div>
+        <div id="bulk-review" class="bulk-review is-hidden">
+          <p class="manual-entry-note">tap a word to include/exclude it, then add:</p>
+          <div id="bulk-chips" class="bulk-chips"></div>
+          <div class="manual-entry-actions">
+            <button type="button" class="btn btn-primary" id="bulk-add-selected">add selected</button>
+          </div>
+        </div>
+        <div id="bulk-progress" class="add-word-status" aria-live="polite"></div>
+      </div>
+
+      <!-- manual entry fallback, shown when dictionary lookup fails -->
+      <form id="manual-entry-form" class="manual-entry-form is-hidden">
+        <p class="manual-entry-note">couldn't find that one in the dictionary — add it yourself:</p>
+        <input type="text" id="manual-pos" placeholder="part of speech (e.g. noun)" />
+        <textarea id="manual-def" placeholder="definition" required></textarea>
+        <textarea id="manual-example" placeholder="example sentence (optional)"></textarea>
+        <div class="manual-entry-actions">
+          <button type="submit" class="btn btn-primary">save word</button>
+          <button type="button" class="btn btn-ghost" id="manual-cancel">cancel</button>
+        </div>
+      </form>
+
+      <div class="word-bank">
+        <div class="word-bank-header">
+          <h2 class="subsection-title">word bank</h2>
+          <span class="word-count" id="word-count">0 words</span>
+        </div>
+        <div id="word-list" class="word-list"></div>
+        <p id="word-list-empty" class="empty-state">your word bank is empty — add your first word above.</p>
+      </div>
+    </section>
+
+    <!-- FLASHCARDS TAB -->
+    <section class="tab-panel" id="tab-flashcards">
+      <div class="panel-header">
+        <span class="section-eyebrow">recall practice</span>
+        <h2 class="section-title">flashcards</h2>
+        <p class="section-sub" id="flashcard-due-note">loading...</p>
+      </div>
+
+      <div class="session-mode-select" id="flashcard-mode-select">
+        <button class="mode-btn is-active" data-mode="due">due today <span class="mode-count" id="fc-count-due">0</span></button>
+        <button class="mode-btn" data-mode="starred">★ starred <span class="mode-count" id="fc-count-starred">0</span></button>
+        <button class="mode-btn" data-mode="all">all words <span class="mode-count" id="fc-count-all">0</span></button>
+      </div>
+
+      <div id="flashcard-empty" class="empty-state is-hidden">
+        nothing due right now — add more words or come back later.
+      </div>
+
+      <div id="flashcard-session" class="session is-hidden">
+        <div class="session-progress">
+          <span id="flashcard-progress-text"></span>
+        </div>
+
+        <div class="flip-card" id="flip-card">
+          <div class="flip-card-inner" id="flip-card-inner">
+            <div class="flip-card-face flip-card-front">
+              <span class="flip-card-label">word</span>
+              <p class="flip-card-word" id="flashcard-word"></p>
+              <span class="flip-card-hint">tap to flip</span>
+            </div>
+            <div class="flip-card-face flip-card-back">
+              <span class="flip-card-label" id="flashcard-pos"></span>
+              <p class="flip-card-def" id="flashcard-def"></p>
+              <p class="flip-card-example" id="flashcard-example"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grade-actions is-hidden" id="flashcard-grade-actions">
+          <button class="btn grade-btn grade-miss" id="flashcard-miss">✗ missed it</button>
+          <button class="btn grade-btn grade-hit" id="flashcard-hit">✓ got it</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- USE IT TAB -->
+    <section class="tab-panel" id="tab-useit">
+      <div class="panel-header">
+        <span class="section-eyebrow">production practice</span>
+        <h2 class="section-title">use it</h2>
+        <p class="section-sub">write a sentence using the word — like you would in real writing or conversation.</p>
+      </div>
+
+      <div class="session-mode-select" id="useit-mode-select">
+        <button class="mode-btn is-active" data-mode="due">due today <span class="mode-count" id="ui-count-due">0</span></button>
+        <button class="mode-btn" data-mode="starred">★ starred <span class="mode-count" id="ui-count-starred">0</span></button>
+        <button class="mode-btn" data-mode="all">all words <span class="mode-count" id="ui-count-all">0</span></button>
+      </div>
+
+      <div id="useit-empty" class="empty-state is-hidden">
+        nothing due right now — add more words or come back later.
+      </div>
+
+      <div id="useit-session" class="session is-hidden">
+        <div class="session-progress">
+          <span id="useit-progress-text"></span>
+        </div>
+
+        <div class="useit-card">
+          <span class="flip-card-label">use this word in a sentence</span>
+          <p class="useit-word" id="useit-word"></p>
+          <textarea id="useit-input" placeholder="type your sentence here..." rows="3"></textarea>
+          <button class="btn btn-primary" id="useit-reveal">reveal definition</button>
+        </div>
+
+        <div class="useit-reveal-panel is-hidden" id="useit-reveal-panel">
+          <span class="flip-card-label" id="useit-pos"></span>
+          <p class="flip-card-def" id="useit-def"></p>
+          <p class="flip-card-example" id="useit-example"></p>
+          <p class="useit-self-grade-prompt">did you use it correctly?</p>
+          <div class="grade-actions" id="useit-grade-actions">
+            <button class="btn grade-btn grade-miss" id="useit-miss">✗ not quite</button>
+            <button class="btn grade-btn grade-hit" id="useit-hit">✓ nailed it</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span class="footer-name">the lexicon project</span>
+      <p>a little game for a bigger vocabulary</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
