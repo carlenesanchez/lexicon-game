@@ -391,6 +391,72 @@ main.container > * { position: relative; }
 }
 .word-count { font-size: 0.95rem; color: var(--sepia); }
 
+.word-bank-tools {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+.tool-btn {
+  background: none;
+  border: none;
+  color: var(--sepia);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tool-btn:hover { color: var(--oxblood); }
+
+.tidy-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  background: var(--shelf);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.7rem 1rem;
+  margin-bottom: 1.25rem;
+}
+.tidy-hint { font-size: 0.95rem; color: var(--sepia); }
+.tidy-remove { padding: 0.35rem 1rem; font-size: 0.92rem; }
+
+.word-card.is-selectable { cursor: pointer; user-select: none; }
+.word-card.is-selected-card {
+  border-color: var(--oxblood);
+  box-shadow: 0 0 0 1px var(--oxblood), var(--shadow);
+}
+.word-card.is-selected-card::after {
+  content: '✓';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  color: var(--oxblood);
+  font-weight: 700;
+}
+
+.word-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.word-edit-form input,
+.word-edit-form textarea {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  background: #fff;
+  color: var(--ink);
+  resize: vertical;
+  width: 100%;
+}
+.word-edit-actions { display: flex; gap: 0.6rem; }
+.word-edit-actions .btn { padding: 0.3rem 0.9rem; font-size: 0.9rem; }
+
 .word-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -462,18 +528,18 @@ main.container > * { position: relative; }
 .mastery-familiar  { background: #DCE6DC; color: var(--forest); border-color: var(--forest); }
 .mastery-mastered  { background: var(--forest); color: var(--page); border-color: var(--forest-dk); }
 
-.word-delete {
+.word-delete,
+.word-edit {
   background: none;
   border: none;
   color: var(--sepia);
   cursor: pointer;
   font-size: 0.85rem;
   font-family: var(--font-body);
-
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.word-delete:hover { color: var(--oxblood); }
+.word-delete:hover, .word-edit:hover { color: var(--oxblood); }
 
 .empty-state {
   color: var(--sepia);

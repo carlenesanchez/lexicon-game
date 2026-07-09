@@ -100,6 +100,10 @@
 
   // ---------- word bank rendering ----------
 
+  let selectMode = false;
+  let selectedIds = new Set();
+  let editingId = null;
+
   function renderWordList() {
     const sorted = [...words].sort((a, b) => a.term.localeCompare(b.term));
     wordCountEl.textContent = `${words.length} word${words.length === 1 ? '' : 's'}`;
@@ -112,20 +116,48 @@
     wordListEmpty.classList.add('is-hidden');
 
     for (const w of sorted) {
+      if (w.id === editingId) {
+        wordListEl.appendChild(buildEditCard(w));
+        continue;
+      }
+
       const m = masteryInfo(w.box);
       const card = document.createElement('div');
       card.className = 'word-card';
-      card.innerHTML = `
-        <button class="word-star-btn ${w.starred ? 'is-starred' : ''}" data-id="${w.id}" title="${w.starred ? 'unstar' : 'star for extra practice'}">${w.starred ? '★' : '☆'}</button>
-        <div class="word-card-term">${escapeHtml(w.term)}</div>
-        <div class="word-card-def">${escapeHtml(w.definition)}</div>
-        <div class="word-card-footer">
-          <span class="mastery-badge ${m.cls}">${m.label}</span>
-          <button class="word-delete" data-id="${w.id}">remove</button>
-        </div>
-      `;
+      if (selectMode) {
+        card.classList.add('is-selectable');
+        if (selectedIds.has(w.id)) card.classList.add('is-selected-card');
+        card.innerHTML = `
+          <div class="word-card-term">${escapeHtml(w.term)}</div>
+          <div class="word-card-def">${escapeHtml(w.definition)}</div>
+          <div class="word-card-footer">
+            <span class="mastery-badge ${m.cls}">${m.label}</span>
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          if (selectedIds.has(w.id)) selectedIds.delete(w.id);
+          else selectedIds.add(w.id);
+          card.classList.toggle('is-selected-card');
+          updateTidyRemoveBtn();
+        });
+      } else {
+        card.innerHTML = `
+          <button class="word-star-btn ${w.starred ? 'is-starred' : ''}" data-id="${w.id}" title="${w.starred ? 'unstar' : 'star for extra practice'}">${w.starred ? '★' : '☆'}</button>
+          <div class="word-card-term">${escapeHtml(w.term)}</div>
+          <div class="word-card-def">${escapeHtml(w.definition)}</div>
+          <div class="word-card-footer">
+            <span class="mastery-badge ${m.cls}">${m.label}</span>
+            <span>
+              <button class="word-edit" data-id="${w.id}">edit</button>
+              <button class="word-delete" data-id="${w.id}">remove</button>
+            </span>
+          </div>
+        `;
+      }
       wordListEl.appendChild(card);
     }
+
+    if (selectMode) return;
 
     $$('.word-delete').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -135,6 +167,13 @@
         saveWords(words);
         renderWordList();
         updateModeCounts();
+      });
+    });
+
+    $$('.word-edit').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        editingId = btn.dataset.id;
+        renderWordList();
       });
     });
 
@@ -149,6 +188,149 @@
       });
     });
   }
+
+  function buildEditCard(w) {
+    const card = document.createElement('div');
+    card.className = 'word-card';
+
+    const form = document.createElement('form');
+    form.className = 'word-edit-form';
+
+    const title = document.createElement('div');
+    title.className = 'word-card-term';
+    title.textContent = w.term;
+
+    const posInput = document.createElement('input');
+    posInput.placeholder = 'part of speech';
+    posInput.value = w.pos || '';
+
+    const defInput = document.createElement('textarea');
+    defInput.placeholder = 'definition';
+    defInput.rows = 3;
+    defInput.required = true;
+    defInput.value = w.definition || '';
+
+    const exInput = document.createElement('textarea');
+    exInput.placeholder = 'example sentence (optional)';
+    exInput.rows = 2;
+    exInput.value = w.example || '';
+
+    const altBtn = document.createElement('button');
+    altBtn.type = 'button';
+    altBtn.className = 'word-edit';
+    altBtn.textContent = '↻ try another definition';
+    let altDefs = null;
+    let altIndex = -1;
+    altBtn.addEventListener('click', async () => {
+      try {
+        if (!altDefs) {
+          altBtn.textContent = 'looking...';
+          const res = await fetch(DICTIONARY_API + encodeURIComponent(w.term));
+          if (!res.ok) throw new Error('not found');
+          const data = await res.json();
+          altDefs = [];
+          for (const entry of data) {
+            for (const meaning of entry.meanings || []) {
+              for (const d of meaning.definitions || []) {
+                altDefs.push({ pos: meaning.partOfSpeech || '', definition: d.definition || '', example: d.example || '' });
+              }
+            }
+          }
+        }
+        if (altDefs.length === 0) throw new Error('none');
+        altIndex = (altIndex + 1) % altDefs.length;
+        const alt = altDefs[altIndex];
+        posInput.value = alt.pos;
+        defInput.value = alt.definition;
+        exInput.value = alt.example;
+        altBtn.textContent = `↻ try another (${altIndex + 1}/${altDefs.length})`;
+      } catch {
+        altBtn.textContent = 'no other definitions found';
+      }
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'word-edit-actions';
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'submit';
+    saveBtn.className = 'btn btn-primary';
+    saveBtn.textContent = 'save';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'btn btn-ghost';
+    cancelBtn.textContent = 'cancel';
+    actions.append(saveBtn, cancelBtn);
+
+    form.append(title, posInput, defInput, exInput, altBtn, actions);
+    card.appendChild(form);
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      w.pos = posInput.value.trim();
+      w.definition = defInput.value.trim();
+      w.example = exInput.value.trim();
+      editingId = null;
+      saveWords(words);
+      renderWordList();
+    });
+    cancelBtn.addEventListener('click', () => {
+      editingId = null;
+      renderWordList();
+    });
+
+    return card;
+  }
+
+  // ---------- tidy up (bulk remove) ----------
+
+  const tidyToggle = $('#tidy-toggle');
+  const tidyBar = $('#tidy-bar');
+  const tidySelectFamiliar = $('#tidy-select-familiar');
+  const tidySelectMastered = $('#tidy-select-mastered');
+  const tidyRemove = $('#tidy-remove');
+  const tidyCancel = $('#tidy-cancel');
+
+  function updateTidyRemoveBtn() {
+    tidyRemove.textContent = `remove selected (${selectedIds.size})`;
+    tidyRemove.disabled = selectedIds.size === 0;
+  }
+
+  function exitSelectMode() {
+    selectMode = false;
+    selectedIds = new Set();
+    tidyBar.classList.add('is-hidden');
+    updateTidyRemoveBtn();
+    renderWordList();
+  }
+
+  tidyToggle.addEventListener('click', () => {
+    if (selectMode) { exitSelectMode(); return; }
+    selectMode = true;
+    editingId = null;
+    tidyBar.classList.remove('is-hidden');
+    updateTidyRemoveBtn();
+    renderWordList();
+  });
+
+  tidyCancel.addEventListener('click', exitSelectMode);
+
+  function selectByBox(minBox) {
+    for (const w of words) if (w.box >= minBox) selectedIds.add(w.id);
+    updateTidyRemoveBtn();
+    renderWordList();
+  }
+  // masteryInfo: box 3-4 = familiar, box 5+ = mastered
+  tidySelectFamiliar.addEventListener('click', () => selectByBox(3));
+  tidySelectMastered.addEventListener('click', () => selectByBox(5));
+
+  tidyRemove.addEventListener('click', () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Remove ${selectedIds.size} word${selectedIds.size === 1 ? '' : 's'} from your lexicon?`)) return;
+    words = words.filter((w) => !selectedIds.has(w.id));
+    saveWords(words);
+    updateModeCounts();
+    exitSelectMode();
+  });
 
   function escapeHtml(str) {
     const div = document.createElement('div');

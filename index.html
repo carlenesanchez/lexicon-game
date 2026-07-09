@@ -94,7 +94,17 @@
       <div class="word-bank">
         <div class="word-bank-header">
           <h2 class="subsection-title">word bank</h2>
-          <span class="word-count" id="word-count">0 words</span>
+          <div class="word-bank-tools">
+            <button type="button" id="tidy-toggle" class="tool-btn">tidy up</button>
+            <span class="word-count" id="word-count">0 words</span>
+          </div>
+        </div>
+        <div id="tidy-bar" class="tidy-bar is-hidden">
+          <span class="tidy-hint">tap cards to select, then remove:</span>
+          <button type="button" class="tool-btn" id="tidy-select-familiar">select familiar + mastered</button>
+          <button type="button" class="tool-btn" id="tidy-select-mastered">select mastered</button>
+          <button type="button" class="btn btn-primary tidy-remove" id="tidy-remove" disabled>remove selected (0)</button>
+          <button type="button" class="tool-btn" id="tidy-cancel">cancel</button>
         </div>
         <div id="word-list" class="word-list"></div>
         <p id="word-list-empty" class="empty-state">your word bank is empty — add your first word above.</p>
