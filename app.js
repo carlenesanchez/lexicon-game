@@ -217,7 +217,7 @@
 
     const altBtn = document.createElement('button');
     altBtn.type = 'button';
-    altBtn.className = 'word-edit';
+    altBtn.className = 'alt-def-btn';
     altBtn.textContent = '↻ try another definition';
     let altDefs = null;
     let altIndex = -1;
